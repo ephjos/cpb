@@ -99,10 +99,10 @@ inline void print_pb(pb_t* pb)
 	if (pb->done) return;
 
 	double pc = (double)(pb->curr+1)/(double)pb->tot;
-	int size = pb->w-12;
+	int size = pb->w-14;
 	int curr_size = (int)(pc * size+1);
 	int i;
-	char* out = (char*)calloc(1, size*sizeof(char)+1);
+	char* out = (char*)calloc(1, size*sizeof(char)+2);
 	//printf("\n%ld, %ld, %f %d %d\n", pb->curr, pb->tot, pc,size,curr_size);
 
 	pc *= 100;
@@ -121,7 +121,7 @@ inline void print_pb(pb_t* pb)
 		return;
 	}
 
-	for (; i<size; i++) {
+	for (; i<size+1; i++) {
 		out[i] = C_EMPTY;
 	}
 
