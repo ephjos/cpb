@@ -32,7 +32,15 @@
 #define HIDE_CURSOR() fputs("\e[?25l", PB_STREAM);
 #define SHOW_CURSOR() fputs("\e[?25h", PB_STREAM);
 
-void pb_sigint_handler(int s)
+void pb_sigint_handler(int s);
+typedef struct pb_struct  pb_t;
+pb_t* new_pb(const long int tot);
+void print_pb(pb_t* pb);
+void update_pb(pb_t* pb, const long int ncurr);
+void inc_pb(pb_t* pb);
+void free_pb(pb_t* pb);
+
+inline void pb_sigint_handler(int s)
 {
 	SHOW_CURSOR();
 	fputs("\n", PB_STREAM);
@@ -48,7 +56,7 @@ typedef struct pb_struct {
 	int done;
 } pb_t;
 
-pb_t* new_pb(const long int tot)
+inline pb_t* new_pb(const long int tot)
 {
   signal(SIGINT, pb_sigint_handler);
 	pb_t* pb = (pb_t*)malloc(sizeof(pb_t));
@@ -73,17 +81,18 @@ pb_t* new_pb(const long int tot)
 	return pb;
 }
 
-void print_pb(pb_t* pb)
+inline void print_pb(pb_t* pb)
 {
 	HIDE_CURSOR()
 	fflush(PB_STREAM);
 	if (pb->done) return;
 
-	double pc = (double)pb->curr/(double)pb->tot;
+	double pc = (double)(pb->curr+1)/(double)pb->tot;
 	int size = pb->w-12;
 	int curr_size = (int)(pc * size+1);
 	int i;
 	char* out = (char*)calloc(1, size*sizeof(char)+1);
+	//printf("\n%ld, %ld, %f %d %d\n", pb->curr, pb->tot, pc,size,curr_size);
 
 	pc *= 100;
 
@@ -92,6 +101,9 @@ void print_pb(pb_t* pb)
 	}
 
 	if (pb->curr >= pb->tot-1) {
+		for (; i<size; i++) {
+			out[i] = C_CURR;
+		}
 		fprintf(PB_STREAM, "\r [%s] %.2f%% \n", out, 100.0);
 		pb->done = 1;
 		free(out);
@@ -106,19 +118,19 @@ void print_pb(pb_t* pb)
 	free(out);
 }
 
-void update_pb(pb_t* pb, const long int ncurr)
+inline void update_pb(pb_t* pb, const long int ncurr)
 {
 	pb->curr = ncurr;
 	print_pb(pb);
 }
 
-void inc_pb(pb_t* pb)
+inline void inc_pb(pb_t* pb)
 {
 	pb->curr++;
 	print_pb(pb);
 }
 
-void free_pb(pb_t* pb)
+inline void free_pb(pb_t* pb)
 {
 	SHOW_CURSOR();
 	free(pb);
