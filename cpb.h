@@ -1,0 +1,127 @@
+#ifndef __CPB_H__
+#define __CPB_H__
+
+//
+// A simple, header only progress bar for C
+//
+// ephjos - 11/08/2020
+//
+// Usage:
+//   put this file in your project
+//   #include "cpb.h"
+//   create a new pb counting to 100:
+//       pb_t* pb = new_pb(100);
+//   increment:
+//       inc_pb(pb);
+//     or
+//   update to 10/100:
+//       update_pb(pb, 10);
+//   free when done:
+//       free_pb(pb);
+
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+
+#define PB_WIDTH 80
+#define PB_STREAM stderr
+#define C_CURR '#'
+#define C_EMPTY '.'
+#define HIDE_CURSOR() fputs("\e[?25l", PB_STREAM);
+#define SHOW_CURSOR() fputs("\e[?25h", PB_STREAM);
+
+void pb_sigint_handler(int s)
+{
+	SHOW_CURSOR();
+	fputs("\n", PB_STREAM);
+	fflush(PB_STREAM);
+	exit(1);
+}
+
+typedef struct pb_struct {
+	long int tot;
+	long int curr;
+	int w;
+	int mw;
+	int done;
+} pb_t;
+
+pb_t* new_pb(const long int tot)
+{
+  signal(SIGINT, pb_sigint_handler);
+	pb_t* pb = (pb_t*)malloc(sizeof(pb_t));
+
+	int mw = PB_WIDTH;
+
+#ifdef TIOCGWINSZ
+	struct winsize win;
+	ioctl(0, TIOCGWINSZ, &win);
+
+	if (win.ws_col) {
+		mw = win.ws_col;
+	}
+#endif
+
+	pb->tot = tot;
+	pb->curr = 0;
+	pb->mw = mw;
+	pb->w = mw - 1;
+	pb->done = 0;
+
+	return pb;
+}
+
+void print_pb(pb_t* pb)
+{
+	HIDE_CURSOR()
+	fflush(PB_STREAM);
+	if (pb->done) return;
+
+	double pc = (double)pb->curr/(double)pb->tot;
+	int size = pb->w-12;
+	int curr_size = (int)(pc * size+1);
+	int i;
+	char* out = (char*)calloc(1, size*sizeof(char)+1);
+
+	pc *= 100;
+
+	for (i = 0; i < curr_size; i++) {
+		out[i] = C_CURR;
+	}
+
+	if (pb->curr >= pb->tot-1) {
+		fprintf(PB_STREAM, "\r [%s] %.2f%% \n", out, 100.0);
+		pb->done = 1;
+		free(out);
+		return;
+	}
+
+	for (; i<size; i++) {
+		out[i] = C_EMPTY;
+	}
+
+	fprintf(PB_STREAM, "\r [%s] %.2f%% ", out, pc);
+	free(out);
+}
+
+void update_pb(pb_t* pb, const long int ncurr)
+{
+	pb->curr = ncurr;
+	print_pb(pb);
+}
+
+void inc_pb(pb_t* pb)
+{
+	pb->curr++;
+	print_pb(pb);
+}
+
+void free_pb(pb_t* pb)
+{
+	SHOW_CURSOR();
+	free(pb);
+}
+
+#endif
