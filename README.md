@@ -16,5 +16,7 @@ A simple header-only progress bar for C
 ## Other
 
 This was thrown together quickly, late at night. Should be sufficient for my
-purposes, by YMMV. PR's welcome.
+purposes, but YMMV. 
+
+PR's welcome.
 
