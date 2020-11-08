@@ -34,7 +34,7 @@
 
 void pb_sigint_handler(int s);
 typedef struct pb_struct  pb_t;
-pb_t* new_pb(const long int tot);
+pb_t* new_pb(const long int tot, char* label);
 void print_pb(pb_t* pb);
 void update_pb(pb_t* pb, const long int ncurr);
 void inc_pb(pb_t* pb);
@@ -51,12 +51,13 @@ inline void pb_sigint_handler(int s)
 typedef struct pb_struct {
 	long int tot;
 	long int curr;
+	char* label;
 	int w;
 	int mw;
 	int done;
 } pb_t;
 
-inline pb_t* new_pb(const long int tot)
+inline pb_t* new_pb(const long int tot, char* label)
 {
   signal(SIGINT, pb_sigint_handler);
 	pb_t* pb = (pb_t*)malloc(sizeof(pb_t));
@@ -76,6 +77,16 @@ inline pb_t* new_pb(const long int tot)
 	pb->curr = 0;
 	pb->mw = mw;
 	pb->w = mw - 1;
+	pb->label = "";
+	if (label) {
+		int sl = strlen(label);
+		if (sl < mw - 40) {
+			pb->w = mw - sl - 2;
+			pb->label = label;
+		} else {
+			fprintf(PB_STREAM, "%s\n", label);
+		}
+	}
 	pb->done = 0;
 
 	return pb;
@@ -104,7 +115,7 @@ inline void print_pb(pb_t* pb)
 		for (; i<size; i++) {
 			out[i] = C_CURR;
 		}
-		fprintf(PB_STREAM, "\r [%s] %.2f%% \n", out, 100.0);
+		fprintf(PB_STREAM, "\r %s [%s] %.2f%% \n", pb->label, out, 100.0);
 		pb->done = 1;
 		free(out);
 		return;
@@ -114,7 +125,7 @@ inline void print_pb(pb_t* pb)
 		out[i] = C_EMPTY;
 	}
 
-	fprintf(PB_STREAM, "\r [%s] %.2f%% ", out, pc);
+	fprintf(PB_STREAM, "\r %s [%s] %.2f%% ", pb->label, out, pc);
 	free(out);
 }
 
