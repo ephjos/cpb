@@ -6,18 +6,8 @@
 //
 // ephjos - 11/08/2020
 //
-// Usage:
-//   put this file in your project
-//   #include "cpb.h"
-//   create a new pb counting to 100:
-//       pb_t* pb = new_pb(100, NULL);
-//   increment:
-//       inc_pb(pb);
-//     or
-//   update to 10/100:
-//       update_pb(pb, 10);
-//   free when done:
-//       free_pb(pb);
+// Visit github.com/ephjos/cpb to learn more
+//
 
 #include <signal.h>
 #include <stdio.h>
