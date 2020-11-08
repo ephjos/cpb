@@ -10,7 +10,7 @@
 //   put this file in your project
 //   #include "cpb.h"
 //   create a new pb counting to 100:
-//       pb_t* pb = new_pb(100);
+//       pb_t* pb = new_pb(100, NULL);
 //   increment:
 //       inc_pb(pb);
 //     or
