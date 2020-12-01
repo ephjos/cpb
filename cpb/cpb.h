@@ -6,7 +6,7 @@
 //
 // ephjos - 11/08/2020
 //
-// Visit github.com/ephjos/cpb to learn more
+// Visit github.com/ephjos/cut/cpb to learn more
 //
 
 #include <signal.h>
@@ -23,7 +23,7 @@
 #define SHOW_CURSOR() fputs("\e[?25h", PB_STREAM);
 
 void pb_sigint_handler(int s);
-typedef struct pb_struct  pb_t;
+typedef struct pb_struct pb_t;
 pb_t* new_pb(const long int tot, char* label);
 void print_pb(pb_t* pb);
 void update_pb(pb_t* pb, const long int ncurr);
