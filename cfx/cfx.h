@@ -3,6 +3,8 @@
 
 //
 // My fork of gfx (https://www3.nd.edu/~dthain/courses/cse20211/fall2013/gfx/)
+// Make sure to link X with `-lX11` when compiling.
+//   `gcc -lX11 main.c`
 //
 // ephjos - 12/02/2020
 //
