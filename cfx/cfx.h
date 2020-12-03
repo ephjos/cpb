@@ -12,64 +12,79 @@
 //
 
 #include <X11/Xlib.h>
+#include <assert.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-static Display *cfx_display=0;
-static Window  cfx_window;
-static GC      cfx_gc;
-static Colormap cfx_colormap;
-static int      cfx_fast_color_mode = 0;
+static Display*        cfx_display = 0;
+static Window          cfx_window;
+static GC              cfx_gc;
+static XFontStruct*    cfx_font;
+static Colormap        cfx_colormap;
+static int             cfx_fast_color_mode = 0;
+static int             event_x = 0;
+static int             event_y = 0;
 
-typedef struct vec2i_t {
-	int x, y;
-} vec2i;
 
-vec2i s_event = {
-	.x = 0,
-	.y = 0
-};
-
-void cfx_open(int width, int height, const char *title)
+void
+cfx_open(int width, int height, const char* title)
 {
+	// Initialize display
 	cfx_display = XOpenDisplay(0);
 	if(!cfx_display) {
+		// TODO: ERROR FUNC
 		fprintf(stderr,"cfx_open: unable to open the graphics window.\n");
 		exit(1);
 	}
 
-	Visual *visual = DefaultVisual(cfx_display,0);
+	// Determine color mode
+	Visual* visual = DefaultVisual(cfx_display,0);
 	if(visual && visual->class==TrueColor) {
 		cfx_fast_color_mode = 1;
 	} else {
 		cfx_fast_color_mode = 0;
 	}
 
+	// Initialize base colors
 	int blackColor = BlackPixel(cfx_display, DefaultScreen(cfx_display));
 	int whiteColor = WhitePixel(cfx_display, DefaultScreen(cfx_display));
 
-	cfx_window = XCreateSimpleWindow(cfx_display, DefaultRootWindow(cfx_display), 0, 0, width, height, 0, blackColor, blackColor);
+	// Initialize window
+	cfx_window = XCreateSimpleWindow(
+			cfx_display, DefaultRootWindow(cfx_display),
+			0, 0, width, height, 0, blackColor, blackColor);
 
+	// Set window attributes
 	XSetWindowAttributes attr;
 	attr.backing_store = Always;
+	XChangeWindowAttributes(
+			cfx_display,cfx_window,
+			CWBackingStore,&attr);
 
-	XChangeWindowAttributes(cfx_display,cfx_window,CWBackingStore,&attr);
-
+	// Set name of window
 	XStoreName(cfx_display,cfx_window,title);
 
-	XSelectInput(cfx_display, cfx_window, StructureNotifyMask|KeyPressMask|ButtonPressMask);
+	// Specify what events to listen to
+	XSelectInput(
+			cfx_display, cfx_window,
+			StructureNotifyMask|KeyPressMask|ButtonPressMask);
 
+	// Send window to be attached to screen
 	XMapWindow(cfx_display,cfx_window);
 
+	// Initialize graphics context
 	cfx_gc = XCreateGC(cfx_display, cfx_window, 0, 0);
-
 	cfx_colormap = DefaultColormap(cfx_display,0);
-
 	XSetForeground(cfx_display, cfx_gc, whiteColor);
 
-	// Wait for the MapNotify event
+	// Load any mono font
+	cfx_font = XLoadQueryFont(cfx_display, "*mono*");
+	// TODO: ERROR FUNC
+	assert(cfx_font != NULL);
 
+	// Wait for the MapNotify event, fired when window is attached
 	for(;;) {
 		XEvent e;
 		XNextEvent(cfx_display, &e);
@@ -78,22 +93,67 @@ void cfx_open(int width, int height, const char *title)
 	}
 }
 
-void cfx_flush()
+// Push all changes to display
+void
+cfx_flush()
 {
 	XFlush(cfx_display);
 }
 
-void cfx_point(int x, int y)
+// Draw a point
+void
+cfx_draw_point(int x, int y)
 {
-	XDrawPoint(cfx_display,cfx_window,cfx_gc,x,y);
+	XDrawPoint(
+			cfx_display, cfx_window, cfx_gc,
+			x, y);
 }
 
-void cfx_line(int x1, int y1, int x2, int y2)
+// Draw a line
+void
+cfx_draw_line(int x1, int y1, int x2, int y2)
 {
-	XDrawLine(cfx_display,cfx_window,cfx_gc,x1,y1,x2,y2);
+	XDrawLine(
+			cfx_display,cfx_window,cfx_gc,
+			x1, y1, x2, y2);
 }
 
-void cfx_color(int r, int g, int b)
+// Draw a rectangle
+void
+cfx_draw_rectangle(int x, int y, int w, int h, int fill)
+{
+	if (fill) {
+		XFillRectangle(
+				cfx_display, cfx_window, cfx_gc,
+				x, y, w, h);
+	} else {
+		XDrawRectangle(
+				cfx_display, cfx_window, cfx_gc,
+				x, y, w-1, h-1);
+	}
+}
+
+// TODO
+void
+cfx_draw_circle()
+{
+}
+
+// Draw some text
+// returns the width of the string in pixels
+int
+cfx_draw_text(int x, int y, char* s)
+{
+	int width = XTextWidth(cfx_font, s, strlen(s));
+	XDrawString(
+			cfx_display, cfx_window, cfx_gc,
+			x, y, s, strlen(s));
+	return width;
+}
+
+// Set the color
+void
+cfx_color(int r, int g, int b)
 {
 	XColor color;
 
@@ -112,12 +172,16 @@ void cfx_color(int r, int g, int b)
 	XSetForeground(cfx_display, cfx_gc, color.pixel);
 }
 
-void cfx_clear()
+// Clear the display
+void
+cfx_clear()
 {
 	XClearWindow(cfx_display,cfx_window);
 }
 
-void cfx_clear_color(int r, int g, int b)
+// Change what the clear color will be (default background)
+void
+cfx_clear_color(int r, int g, int b)
 {
 	XColor color;
 	color.pixel = 0;
@@ -131,7 +195,9 @@ void cfx_clear_color(int r, int g, int b)
 	XChangeWindowAttributes(cfx_display,cfx_window,CWBackPixel,&attr);
 }
 
-int cfx_event_waiting()
+// Returns true if there is an input event available
+int
+cfx_event_waiting()
 {
 	XEvent event;
 
@@ -154,7 +220,11 @@ int cfx_event_waiting()
 	}
 }
 
-char cfx_wait()
+// Waits for input, returning the character of the
+// key that was pressed, or '' if it was a click
+//
+char
+cfx_wait(int* x, int* y)
 {
 	XEvent event;
 
@@ -164,21 +234,33 @@ char cfx_wait()
 		XNextEvent(cfx_display,&event);
 
 		if(event.type==KeyPress) {
-			s_event.x = event.xkey.x;
-			s_event.y = event.xkey.y;
-
+			event_x = event.xkey.x;
+			event_y = event.xkey.y;
+			*x = event_x;
+			*y = event_y;
 			return XLookupKeysym(&event.xkey,0);
 		} else if(event.type==ButtonPress) {
-			s_event.x = event.xkey.x;
-			s_event.y = event.xkey.y;
+			event_x = event.xkey.x;
+			event_y = event.xkey.y;
+			*x = event_x;
+			*y = event_y;
 			return event.xbutton.button;
 		}
 	}
 }
 
-vec2i cfx_event_pos()
+// Get the (x,y) position of the last event
+void
+cfx_get_event_pos(int* x, int* y)
 {
-	return s_event;
+	*x = event_x;
+	*y = event_y;
+}
+
+// TODO: free all data, cleanup
+void
+cfx_free()
+{
 }
 
 #endif
