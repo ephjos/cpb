@@ -4,7 +4,7 @@
 //
 // My fork of gfx (https://www3.nd.edu/~dthain/courses/cse20211/fall2013/gfx/)
 // Make sure to link X with `-lX11` when compiling.
-//   `gcc -lX11 main.c`
+//   `gcc -lX11 -lm main.c`
 //
 // ephjos - 12/02/2020
 //
@@ -13,7 +13,7 @@
 
 #include <X11/Xlib.h>
 #include <assert.h>
-#include <unistd.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -133,10 +133,16 @@ cfx_draw_rectangle(int x, int y, int w, int h, int fill)
 	}
 }
 
-// TODO
+// Draws a circle centered at x,y with radius r
 void
-cfx_draw_circle()
+cfx_draw_circle(int x, int y, int r)
 {
+	int n = 12;
+	for (int i = 0; i < 2*n; i++) {
+		cfx_draw_line(
+				x-(r*cos(i*(M_PI/n))), y-(r*sin(i*(M_PI/n))),
+				x-(r*cos((i+1%n)*(M_PI/n))), y-(r*sin((i+1%n)*(M_PI/n))));
+	}
 }
 
 // Draw some text

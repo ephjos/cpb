@@ -32,6 +32,9 @@ int main()
 		cfx_color(0,255,0);
 		cfx_draw_text(300, 300, "Hello, cfx!");
 
+		// Draw circle
+		cfx_draw_circle(200, 450, 20);
+
 		// Update screen
 		cfx_flush();
 
