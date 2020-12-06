@@ -32,5 +32,36 @@ int main(int argc, char *argv[])
 	}
 	free2d((void**)cs, n);
 
+	strcpy(str, "12 34 56 78");
+	cs = split(str, " ", &n);
+	for (int i = 0; i<n; i++) {
+		printf("'%s' ", cs[i]);
+	}
+	printf("\n");
+	int* is = sstoi(cs, n);
+	int sum = 0;
+	for (int i = 0; i<n; i++) {
+		sum += is[i];
+	}
+	DUMP("%d", sum);
+	free2d((void**)cs, n);
+
+	strcpy(str, "922337203685477580 223372036854775808");
+	cs = split(str, " ", &n);
+	for (int i = 0; i<n; i++) {
+		printf("'%s' ", cs[i]);
+	}
+	printf("\n");
+	long long* lls = sstoll(cs, n);
+	long long lsum = 0;
+	for (int i = 0; i<n; i++) {
+		lsum += lls[i];
+	}
+	DUMP("%lld", lsum);
+
+	free2d((void**)cs, n);
+	free(is);
+	free(lls);
+
 	return 0;
 }

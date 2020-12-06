@@ -94,7 +94,7 @@ size %d; try increasing the buf size\n", bsize);
 
 	// Shrink all lines to match the max width
 	n = i;
-	for (i = 0; i<n; i++) {
+	for (i = 0; i < n; i++) {
 		data[i] = (char*)realloc(data[i], sizeof(char)*w);
 	}
 
@@ -132,6 +132,42 @@ split(char* s, char* delim, int* return_ntoks)
 	*return_ntoks = i;
 	free(p);
 	return toks;
+}
+
+int* sstoi(char** ss, int n);
+inline int*
+sstoi(char** ss, int n)
+{
+	int* is = (int*)malloc(sizeof(int)*n);
+	for (int i = 0; i < n; i++) {
+		is[i] = atoi(ss[i]);
+	}
+
+	return is;
+}
+
+long* sstol(char** ss, int n);
+inline long*
+sstol(char** ss, int n)
+{
+	long* is = (long*)malloc(sizeof(long)*n);
+	for (int i = 0; i < n; i++) {
+		is[i] = atol(ss[i]);
+	}
+
+	return is;
+}
+
+long long* sstoll(char** ss, int n);
+inline long long*
+sstoll(char** ss, int n)
+{
+	long long* is = (long long*)malloc(sizeof(long long)*n);
+	for (int i = 0; i < n; i++) {
+		is[i] = atoll(ss[i]);
+	}
+
+	return is;
 }
 
 #endif
