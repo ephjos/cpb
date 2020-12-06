@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static Display*        cfx_display = 0;
 static Window          cfx_window;
@@ -29,12 +30,11 @@ static int             event_y = 0;
 
 
 void
-cfx_open(int width, int height, const char* title)
+cfx_open(int width, int height)
 {
 	// Initialize display
-	cfx_display = XOpenDisplay(0);
+	cfx_display = XOpenDisplay(NULL);
 	if(!cfx_display) {
-		// TODO: ERROR FUNC
 		fprintf(stderr,"cfx_open: unable to open the graphics window.\n");
 		exit(1);
 	}
@@ -64,7 +64,7 @@ cfx_open(int width, int height, const char* title)
 			CWBackingStore,&attr);
 
 	// Set name of window
-	XStoreName(cfx_display,cfx_window,title);
+	XStoreName(cfx_display,cfx_window,"cfx");
 
 	// Specify what events to listen to
 	XSelectInput(
@@ -81,7 +81,6 @@ cfx_open(int width, int height, const char* title)
 
 	// Load any mono font
 	cfx_font = XLoadQueryFont(cfx_display, "*mono*");
-	// TODO: ERROR FUNC
 	assert(cfx_font != NULL);
 
 	// Wait for the MapNotify event, fired when window is attached
@@ -257,10 +256,22 @@ cfx_get_event_pos(int* x, int* y)
 	*y = event_y;
 }
 
-// TODO: free all data, cleanup
+// Call in loop after handling input to run at fps
+void
+cfx_anim(float fps) {
+	usleep(1000000.0 / fps);
+}
+
 void
 cfx_free()
 {
+	XFreeFont(cfx_display, cfx_font);
+	XFreeColormap(cfx_display, cfx_colormap);
+	XFreeGC(cfx_display, cfx_gc);
+
+	XDestroyWindow(cfx_display, cfx_window);
+	XSync(cfx_display, 0);
+	XCloseDisplay(cfx_display);
 }
 
 #endif
