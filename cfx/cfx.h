@@ -29,6 +29,7 @@ static int             event_x = 0;
 static int             event_y = 0;
 
 
+// TODO: allow for automatic recording
 void
 cfx_open(int width, int height)
 {

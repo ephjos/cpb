@@ -12,23 +12,30 @@ int main()
 	// Open a new window for drawing.
 	cfx_open(xsize,ysize);
 
-	// Set the current drawing color to green.
-	cfx_color(0,200,100);
 
 	int i = 0;
 	while(1) {
 		cfx_clear();
 
 		// Draw a triangle on the screen.
+		cfx_color(0,200,100);
 		cfx_draw_line(100,100,200,100);
 		cfx_draw_line(200,100,150,150);
 		cfx_draw_line(150,150,100,100);
 
-		cfx_draw_rectangle(i,50,50,25,0);
-		cfx_draw_rectangle(i,75,50,25,1);
+		// Draw rectangles
+		cfx_color(200,100,50);
+		cfx_draw_rectangle(i,20,50,25,0);
+		cfx_draw_rectangle(i,50,50,25,1);
 
+		// Draw text
+		cfx_color(0,255,0);
 		cfx_draw_text(300, 300, "Hello, cfx!");
+
+		// Update screen
 		cfx_flush();
+
+		// Increment i (cyclic)
 		i+=10; i %= xsize-50;
 
 		if (cfx_event_waiting()) {
@@ -40,9 +47,11 @@ int main()
 			if(c=='q') break;
 		}
 
+		// Sleep for enough time to update window at 60 fps
 		cfx_anim(60);
 	}
 
+	// Cleanup
 	cfx_free();
 
 	return 0;
