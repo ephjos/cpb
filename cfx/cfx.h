@@ -3,21 +3,19 @@
 
 //
 // My fork of gfx (https://www3.nd.edu/~dthain/courses/cse20211/fall2013/gfx/)
-// Make sure to link X with `-lX11` when compiling.
-//   `gcc -lX11 -lm main.c`
 //
-// ephjos - 12/02/2020
+// ephjos
 //
 // Visit github.com/ephjos/cut/cfx to learn more
 //
 
-#include <X11/Xlib.h>
+#include <X11/Xlib.h>             // -lX11
 
-#include <libavcodec/avcodec.h>
-#include <libavutil/opt.h>
+#include <libavcodec/avcodec.h>   // -lavcodec
+#include <libavutil/opt.h>        // -lavutil
 #include <libavutil/imgutils.h>
 #include <libavutil/pixfmt.h>
-#include <libswscale/swscale.h>
+#include <libswscale/swscale.h>   //-lswscale
 
 #include <assert.h>
 #include <math.h>
