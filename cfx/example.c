@@ -3,25 +3,27 @@
 
 int main()
 {
-	int ysize = 600;
-	int xsize = 600;
+	int xsize = 400;
+	int ysize = 400;
 
 	char c;
 	int x,y;
 
 	// Open a new window for drawing.
-	cfx_open(xsize,ysize);
-
+	cfx_open(xsize,ysize,60,"recording.mp4");
 
 	int i = 0;
 	while(1) {
 		cfx_clear();
 
 		// Draw a triangle on the screen.
-		cfx_color(0,200,100);
+		cfx_color(50,200,100);
 		cfx_draw_line(100,100,200,100);
 		cfx_draw_line(200,100,150,150);
 		cfx_draw_line(150,150,100,100);
+
+		cfx_draw_line(2,2,8,6);
+		cfx_draw_line(0,0,0,9);
 
 		// Draw rectangles
 		cfx_color(200,100,50);
@@ -51,7 +53,7 @@ int main()
 		}
 
 		// Sleep for enough time to update window at 60 fps
-		cfx_anim(60);
+		cfx_wait_frame();
 	}
 
 	// Cleanup

@@ -12,6 +12,13 @@
 //
 
 #include <X11/Xlib.h>
+
+#include <libavcodec/avcodec.h>
+#include <libavutil/opt.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/pixfmt.h>
+#include <libswscale/swscale.h>
+
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -19,25 +26,113 @@
 #include <string.h>
 #include <unistd.h>
 
-static Display*        cfx_display = 0;
-static Window          cfx_window;
-static GC              cfx_gc;
-static XFontStruct*    cfx_font;
-static Colormap        cfx_colormap;
-static int             cfx_fast_color_mode = 0;
-static int             event_x = 0;
-static int             event_y = 0;
+#define PLANE_MASK (1<<30)-1
 
+static Display*               cfx_display = 0;
+static Window                 cfx_window;
+static GC                     cfx_gc;
+static XFontStruct*           cfx_font;
+static Colormap               cfx_colormap;
+static int                    cfx_width = 0;
+static int                    cfx_height = 0;
+static int                    cfx_fast_color_mode = 0;
+static int                    cfx_ex = 0;
+static int                    cfx_ey = 0;
+static double                 cfx_fps = 30;
+static AVCodec*               cfx_av_codec = NULL;
+static AVCodecContext*        cfx_av_codec_context = NULL;
+static FILE*                  cfx_av_fp = NULL;
+static AVFrame*               cfx_av_frame = NULL;
+static AVPacket*              cfx_av_pkt = NULL;
+static uint8_t                cfx_av_endcode[] = {0,0,1,0xb7};
+static int                    cfx_av_ret = 0;
+static int                    cfx_av_fcnt = 0;
+static struct SwsContext*     cfx_sws_context = NULL;
 
-// TODO: allow for automatic recording
-void
-cfx_open(int width, int height)
+static void
+cfx_encode(
+		AVCodecContext *enc_ctx, AVFrame *frame, AVPacket *pkt, FILE *outfile)
 {
+	int ret;
+
+	ret = avcodec_send_frame(enc_ctx, frame);
+	if (ret < 0) {
+		fprintf(stderr, "Error sending a frame for encoding\n");
+		exit(1);
+	}
+
+	while (ret >= 0) {
+		ret = avcodec_receive_packet(enc_ctx, pkt);
+		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+			return;
+		else if (ret < 0) {
+			fprintf(stderr, "Error during encoding\n");
+			exit(1);
+		}
+
+		fwrite(pkt->data, 1, pkt->size, outfile);
+		av_packet_unref(pkt);
+	}
+}
+
+void
+cfx_open(int width, int height, int fps, char* filename)
+{
+	cfx_width = width; cfx_height = height; cfx_fps = fps;
+
 	// Initialize display
 	cfx_display = XOpenDisplay(NULL);
 	if(!cfx_display) {
 		fprintf(stderr,"cfx_open: unable to open the graphics window.\n");
 		exit(1);
+	}
+
+	if (filename) { // Initialize for recording
+		// Init codec
+		cfx_av_codec = avcodec_find_encoder_by_name("mpeg4");
+		assert(cfx_av_codec);
+
+		// Init context
+		cfx_av_codec_context = avcodec_alloc_context3(cfx_av_codec);
+		assert(cfx_av_codec_context);
+
+		// Init packet
+		cfx_av_pkt = av_packet_alloc();
+		assert(cfx_av_pkt);
+
+		// Set context params
+		cfx_av_codec_context->bit_rate = 400000;
+		cfx_av_codec_context->width = width;
+		cfx_av_codec_context->height = height;
+		cfx_av_codec_context->time_base = (AVRational){1, fps};
+		cfx_av_codec_context->framerate = (AVRational){fps, 1};
+		cfx_av_codec_context->gop_size = 10;
+		cfx_av_codec_context->max_b_frames = 1;
+		cfx_av_codec_context->pix_fmt = AV_PIX_FMT_YUV420P;
+
+		if (cfx_av_codec->id == AV_CODEC_ID_H264) {
+			av_opt_set(cfx_av_codec_context->priv_data, "preset", "slow", 0);
+		}
+
+		cfx_av_ret = avcodec_open2(cfx_av_codec_context, cfx_av_codec, NULL);
+		assert(cfx_av_ret == 0);
+
+		cfx_av_fp = fopen(filename, "wb");
+		assert(cfx_av_fp);
+
+		cfx_av_frame = av_frame_alloc();
+		assert(cfx_av_frame);
+		cfx_av_frame->format = cfx_av_codec_context->pix_fmt;
+		cfx_av_frame->width = cfx_av_codec_context->width;
+		cfx_av_frame->height = cfx_av_codec_context->height;
+
+		cfx_av_ret = av_frame_get_buffer(cfx_av_frame, 0);
+		assert(cfx_av_ret == 0);
+
+		cfx_sws_context = sws_getContext(
+				width, height, AV_PIX_FMT_0RGB,
+				width, height, AV_PIX_FMT_YUV420P,
+				SWS_BICUBIC, 0, 0, 0);
 	}
 
 	// Determine color mode
@@ -240,16 +335,16 @@ cfx_wait(int* x, int* y)
 		XNextEvent(cfx_display,&event);
 
 		if(event.type==KeyPress) {
-			event_x = event.xkey.x;
-			event_y = event.xkey.y;
-			*x = event_x;
-			*y = event_y;
+			cfx_ex = event.xkey.x;
+			cfx_ey = event.xkey.y;
+			*x = cfx_ex;
+			*y = cfx_ey;
 			return XLookupKeysym(&event.xkey,0);
 		} else if(event.type==ButtonPress) {
-			event_x = event.xkey.x;
-			event_y = event.xkey.y;
-			*x = event_x;
-			*y = event_y;
+			cfx_ex = event.xkey.x;
+			cfx_ey = event.xkey.y;
+			*x = cfx_ex;
+			*y = cfx_ey;
 			return event.xbutton.button;
 		}
 	}
@@ -259,19 +354,52 @@ cfx_wait(int* x, int* y)
 void
 cfx_get_event_pos(int* x, int* y)
 {
-	*x = event_x;
-	*y = event_y;
+	*x = cfx_ex;
+	*y = cfx_ey;
 }
 
 // Call in loop after handling input to run at fps
 void
-cfx_anim(float fps) {
-	usleep(1000000.0 / fps);
+cfx_wait_frame() {
+	usleep(1000000.0 / cfx_fps);
+
+	fflush(stdout);
+	cfx_av_ret = av_frame_make_writable(cfx_av_frame);
+	assert(cfx_av_ret == 0);
+
+	XImage* img = XGetImage(cfx_display, cfx_window,
+			0,0,cfx_width,cfx_height,PLANE_MASK,ZPixmap);
+
+	cfx_sws_context = sws_getContext(
+			cfx_width, cfx_height, AV_PIX_FMT_RGB32,
+			cfx_width, cfx_height, AV_PIX_FMT_YUV420P,
+			SWS_BICUBIC, 0, 0, 0);
+
+	const uint8_t* data[1] = {(uint8_t*)(img->data)};
+	int data_linesize[1] = { 4*cfx_width };
+	sws_scale(cfx_sws_context, data, data_linesize, 0, cfx_height,
+			cfx_av_frame->data, cfx_av_frame->linesize);
+
+	cfx_av_frame->pts = cfx_av_fcnt; cfx_av_fcnt++;
+	cfx_encode(cfx_av_codec_context,cfx_av_frame,cfx_av_pkt,cfx_av_fp);
+	XFree(img);
 }
 
 void
 cfx_free()
 {
+	cfx_encode(cfx_av_codec_context,NULL,cfx_av_pkt,cfx_av_fp);
+
+	if (cfx_av_codec->id == AV_CODEC_ID_MPEG1VIDEO ||
+			cfx_av_codec->id == AV_CODEC_ID_MPEG2VIDEO) {
+		fwrite(cfx_av_endcode, 1, sizeof(cfx_av_endcode), cfx_av_fp);
+	}
+	fclose(cfx_av_fp);
+
+	avcodec_free_context(&cfx_av_codec_context);
+	av_frame_free(&cfx_av_frame);
+	av_packet_free(&cfx_av_pkt);
+
 	XFreeFont(cfx_display, cfx_font);
 	XFreeColormap(cfx_display, cfx_colormap);
 	XFreeGC(cfx_display, cfx_gc);
