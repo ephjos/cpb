@@ -10,7 +10,7 @@ int main()
 	int x,y;
 
 	// Open a new window for drawing.
-	cfx_open(xsize,ysize,60,"recording.mp4");
+	cfx_open(xsize, ysize, 60,NULL);
 
 	int i = 0;
 	while(1) {

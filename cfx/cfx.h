@@ -10,6 +10,7 @@
 //
 
 #include <X11/Xlib.h>             // -lX11
+#include <X11/Xutil.h>
 
 #include <libavcodec/avcodec.h>   // -lavcodec
 #include <libavutil/opt.h>        // -lavutil
@@ -128,7 +129,7 @@ cfx_open(int width, int height, int fps, char* filename)
 		assert(cfx_av_ret == 0);
 
 		cfx_sws_context = sws_getContext(
-				width, height, AV_PIX_FMT_0RGB,
+				width, height, AV_PIX_FMT_RGB32,
 				width, height, AV_PIX_FMT_YUV420P,
 				SWS_BICUBIC, 0, 0, 0);
 	}
@@ -361,17 +362,14 @@ void
 cfx_wait_frame() {
 	usleep(1000000.0 / cfx_fps);
 
+	if (!cfx_av_fp) return;
+
 	fflush(stdout);
 	cfx_av_ret = av_frame_make_writable(cfx_av_frame);
 	assert(cfx_av_ret == 0);
 
 	XImage* img = XGetImage(cfx_display, cfx_window,
 			0,0,cfx_width,cfx_height,PLANE_MASK,ZPixmap);
-
-	cfx_sws_context = sws_getContext(
-			cfx_width, cfx_height, AV_PIX_FMT_RGB32,
-			cfx_width, cfx_height, AV_PIX_FMT_YUV420P,
-			SWS_BICUBIC, 0, 0, 0);
 
 	const uint8_t* data[1] = {(uint8_t*)(img->data)};
 	int data_linesize[1] = { 4*cfx_width };
@@ -380,23 +378,27 @@ cfx_wait_frame() {
 
 	cfx_av_frame->pts = cfx_av_fcnt; cfx_av_fcnt++;
 	cfx_encode(cfx_av_codec_context,cfx_av_frame,cfx_av_pkt,cfx_av_fp);
-	XFree(img);
+	XDestroyImage(img);
 }
 
 void
 cfx_free()
 {
-	cfx_encode(cfx_av_codec_context,NULL,cfx_av_pkt,cfx_av_fp);
+	if (cfx_av_fp) {
+		cfx_encode(cfx_av_codec_context,NULL,cfx_av_pkt,cfx_av_fp);
 
-	if (cfx_av_codec->id == AV_CODEC_ID_MPEG1VIDEO ||
-			cfx_av_codec->id == AV_CODEC_ID_MPEG2VIDEO) {
-		fwrite(cfx_av_endcode, 1, sizeof(cfx_av_endcode), cfx_av_fp);
+		if (cfx_av_codec->id == AV_CODEC_ID_MPEG1VIDEO ||
+				cfx_av_codec->id == AV_CODEC_ID_MPEG2VIDEO) {
+			fwrite(cfx_av_endcode, 1, sizeof(cfx_av_endcode), cfx_av_fp);
+		}
+		fclose(cfx_av_fp);
+
+		sws_freeContext(cfx_sws_context);
+
+		avcodec_free_context(&cfx_av_codec_context);
+		av_frame_free(&cfx_av_frame);
+		av_packet_free(&cfx_av_pkt);
 	}
-	fclose(cfx_av_fp);
-
-	avcodec_free_context(&cfx_av_codec_context);
-	av_frame_free(&cfx_av_frame);
-	av_packet_free(&cfx_av_pkt);
 
 	XFreeFont(cfx_display, cfx_font);
 	XFreeColormap(cfx_display, cfx_colormap);
