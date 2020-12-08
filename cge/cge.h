@@ -103,9 +103,9 @@ size %d; try increasing the buf size\n", bsize);
 	return data;
 }
 
-void free2d(void** f, int n);
+void ffree(void** f, int n);
 inline void
-free2d(void** f, int n)
+ffree(void** f, int n)
 {
 	for (int i = 0; i < n; i++) {
 		free(f[i]);
