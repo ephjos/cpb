@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #define PLANE_MASK (1<<30)-1
+#define MIN( a, b ) ((a) > (b) ? (b) : (a))
 
 static Display*               cfx_display = 0;
 static Window                 cfx_window;
@@ -89,6 +90,7 @@ cfx_open(int width, int height, int fps, char* filename)
 	if (filename) { // Initialize for recording
 		// Init codec
 		cfx_av_codec = avcodec_find_encoder_by_name("mpeg4");
+		//cfx_av_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
 		assert(cfx_av_codec);
 
 		// Init context
@@ -100,11 +102,11 @@ cfx_open(int width, int height, int fps, char* filename)
 		assert(cfx_av_pkt);
 
 		// Set context params
-		cfx_av_codec_context->bit_rate = 400000;
+		cfx_av_codec_context->bit_rate = 20000000;
 		cfx_av_codec_context->width = width;
 		cfx_av_codec_context->height = height;
-		cfx_av_codec_context->time_base = (AVRational){1, fps};
-		cfx_av_codec_context->framerate = (AVRational){fps, 1};
+		cfx_av_codec_context->time_base = (AVRational){1, MIN(120, fps)};
+		cfx_av_codec_context->framerate = (AVRational){MIN(120, fps), 1};
 		cfx_av_codec_context->gop_size = 10;
 		cfx_av_codec_context->max_b_frames = 1;
 		cfx_av_codec_context->pix_fmt = AV_PIX_FMT_YUV420P;
