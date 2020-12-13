@@ -30,13 +30,14 @@
 		exit(1); \
 	} while (0)
 
-#ifndef MAX
+#undef MAX
 #define MAX( a, b ) ((a) > (b) ? (a) : (b))
-#endif
 
-#ifndef MIN
+#undef MIN
 #define MIN( a, b ) ((a) > (b) ? (b) : (a))
-#endif
+
+#undef MIN
+#define ABS( x ) (((x) < 0) ? (-x) : (x))
 
 #define IS_BETWEEN( x, a, b ) \
 	((unsigned char)((x) >= (a) && (x) <= (b)))
