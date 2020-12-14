@@ -53,6 +53,17 @@
 		free(f); \
 	} while (0)
 
+#define FFFREE( f, m, n ) \
+	do { \
+		for (int i = 0; i < m; i++) { \
+			for (int j = 0; j < n; j++) { \
+				free(f[j]); \
+			} \
+			free(f[i]); \
+		} \
+		free(f); \
+	} while (0)
+
 /*
  * Functions
  */
