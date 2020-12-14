@@ -64,6 +64,8 @@
 		free(f); \
 	} while (0)
 
+typedef unsigned long ulong;
+
 /*
  * Functions
  */
