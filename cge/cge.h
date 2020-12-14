@@ -36,7 +36,7 @@
 #undef MIN
 #define MIN( a, b ) ((a) > (b) ? (b) : (a))
 
-#undef MIN
+#undef ABS
 #define ABS( x ) (((x) < 0) ? (-x) : (x))
 
 #define IS_BETWEEN( x, a, b ) \
@@ -44,6 +44,14 @@
 
 #define XIS_BETWEEN( x, a, b ) \
 	((unsigned char)((x) > (a) && (x) < (b)))
+
+#define FFREE( f, n ) \
+	do { \
+		for (int i = 0; i < n; i++) { \
+			free(f[i]); \
+		} \
+		free(f); \
+	} while (0)
 
 /*
  * Functions
@@ -102,16 +110,6 @@ size %d; try increasing the buf size\n", bsize);
 	*return_n = n;
 	fclose(fp);
 	return data;
-}
-
-void ffree(void** f, int n);
-inline void
-ffree(void** f, int n)
-{
-	for (int i = 0; i < n; i++) {
-		free(f[i]);
-	}
-	free(f);
 }
 
 char** split(char* s, char* delim, int* return_ntoks);
